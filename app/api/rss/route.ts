@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import Parser from 'rss-parser';
 import { Post } from '@/lib/types';
 
+export const dynamic = 'force-dynamic';
+
 const parser = new Parser({
   requestOptions: {
     rejectUnauthorized: false,

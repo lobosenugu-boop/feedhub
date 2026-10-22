@@ -2,14 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import type { ChatCompletionCreateParamsNonStreaming } from 'openai/resources/chat/completions';
 
-// Primary: Gemini 3.6 Flash (1M token context, handles large prompts)
-const gemini = new OpenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-  baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
-});
+export const dynamic = 'force-dynamic';
+
+// Lazy singleton — only instantiated when a request arrives, not at build time
+let _gemini: OpenAI | null = null;
+function getGemini(): OpenAI {
+  if (!_gemini) {
+    _gemini = new OpenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+    });
+  }
+  return _gemini;
+}
 
 async function chatWithFallback(params: ChatCompletionCreateParamsNonStreaming) {
-  return await gemini.chat.completions.create({
+  return await getGemini().chat.completions.create({
     ...params,
     model: 'gemini-3.6-flash',
   });
