@@ -1,26 +1,84 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --cream: #f5f0e8;
+  --cream-dark: #ede7db;
+  --sidebar: #111318;
+  --sidebar-hover: #1e2028;
+  --card: #ffffff;
+  --border: #e5ded4;
+  --text: #1a1a2e;
+  --muted: #8a8a9a;
+  --accent: #ff6b35;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-cream: var(--cream);
+  --color-cream-dark: var(--cream-dark);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--cream);
+  color: var(--text);
+  font-family: var(--font-sans), Arial, sans-serif;
 }
+
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d0c8bc;
+  border-radius: 3px;
+}
+
+/* Inline article reader styles */
+.reader-content p { margin-bottom: 1.2em; }
+.reader-content h1, .reader-content h2, .reader-content h3 {
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 1.6em 0 0.6em;
+  line-height: 1.3;
+}
+.reader-content h1 { font-size: 1.4em; }
+.reader-content h2 { font-size: 1.2em; }
+.reader-content h3 { font-size: 1.05em; }
+.reader-content img {
+  max-width: 100%;
+  border-radius: 10px;
+  margin: 1.2em 0;
+}
+.reader-content a { color: #ff6b35; text-decoration: underline; }
+.reader-content ul, .reader-content ol { padding-left: 1.5em; margin-bottom: 1.2em; }
+.reader-content li { margin-bottom: 0.4em; }
+.reader-content blockquote {
+  border-left: 3px solid #ff6b35;
+  padding-left: 1em;
+  color: #8a8a9a;
+  margin: 1.2em 0;
+  font-style: italic;
+}
+.reader-content pre, .reader-content code {
+  background: #f5f0e8;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 0.88em;
+}
+.reader-content pre { padding: 1em; overflow-x: auto; margin-bottom: 1.2em; }
+.reader-content code { padding: 0.1em 0.3em; }
+.reader-content hr { border: none; border-top: 1px solid #e5ded4; margin: 2em 0; }
