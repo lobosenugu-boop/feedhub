@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { X, Send, Copy, Check, Sparkles, Plus, Trash2, BookmarkPlus, ChevronDown, Link2, FileText, LayoutGrid, Loader2 as ContextLoader } from 'lucide-react';
+import VoiceMicButton from '@/components/VoiceMicButton';
 import { renderMarkdown } from '@/lib/markdown';
 import { getBoards } from '@/lib/boards';
 import { saveBoardItem, getBoardItems } from '@/lib/board-items';
@@ -1053,16 +1054,21 @@ function ChatPanel({ tool, onClose }: { tool: AITool; onClose: () => void }) {
               ))}
             </div>
           )}
-          <div className="flex items-end gap-3 bg-[#f5f0e8] rounded-2xl px-4 py-3">
+          <div className="flex items-end gap-2 bg-[#f5f0e8] rounded-2xl px-4 py-3">
             <textarea
               ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Type a message… (Enter to send)"
+              placeholder="Type or speak a message… (Enter to send)"
               rows={1}
               className="flex-1 bg-transparent text-sm text-[#1a1a2e] placeholder-[#8a8a9a] resize-none outline-none max-h-32 leading-relaxed"
               style={{ minHeight: '24px' }}
+            />
+            <VoiceMicButton
+              onResult={(text) => setInput((prev) => prev ? `${prev} ${text}` : text)}
+              className="w-7 h-7 shrink-0"
+              size={15}
             />
             <button
               onClick={sendMessage}

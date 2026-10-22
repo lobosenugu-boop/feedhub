@@ -5,6 +5,7 @@ import {
   Brain, Search, Plus, X, Loader2, BookOpen,
   ArrowRight, PlayCircle, Clock, Zap
 } from 'lucide-react';
+import VoiceMicButton from '@/components/VoiceMicButton';
 
 const DAILY_TOPICS = [
   'Consciousness', 'Identity', 'Meaning', 'Status anxiety', 'Desire',
@@ -258,14 +259,17 @@ Respond ONLY with valid JSON — no markdown, no explanation, just the JSON obje
         {tab === 'discover' && (
           <div className="space-y-4">
             <div className="flex gap-2">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && searchTopics(searchQuery)}
-                placeholder="Search a topic… e.g. attention, identity, fear, meaning"
-                className="flex-1 border border-[#e5ded4] rounded-xl px-4 py-3 text-sm bg-white outline-none focus:border-[#1a1a2e] text-[#1a1a2e]"
-              />
+              <div className="flex-1 flex items-center border border-[#e5ded4] rounded-xl bg-white px-4 gap-2 focus-within:border-[#1a1a2e]">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && searchTopics(searchQuery)}
+                  placeholder="Search a topic… e.g. attention, identity, fear, meaning"
+                  className="flex-1 py-3 text-sm bg-transparent outline-none text-[#1a1a2e]"
+                />
+                <VoiceMicButton onResult={(t) => setSearchQuery(t)} size={15} className="w-7 h-7 shrink-0" />
+              </div>
               <button
                 onClick={() => searchTopics(searchQuery)}
                 disabled={!searchQuery.trim() || searching}

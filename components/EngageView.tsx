@@ -6,6 +6,7 @@ import {
   Loader2, Trash2, ChevronDown, ChevronUp, User,
   RefreshCw, Eye, ThumbsUp, MessageSquare, Play,
 } from 'lucide-react';
+import VoiceMicButton from '@/components/VoiceMicButton';
 import type { CreatorPost } from '@/app/api/creator-posts/route';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -325,7 +326,10 @@ export default function EngageView() {
             <div className="mt-4 p-4 bg-[#f5f0e8] rounded-xl border border-[#e5ded4] space-y-2">
               <p className="text-xs font-semibold text-[#1a1a2e]">Your niche & brand context</p>
               <p className="text-xs text-[#8a8a9a]">Personalises every comment suggestion to your voice and positioning.</p>
-              <textarea value={brand} onChange={(e) => setBrand(e.target.value)} rows={3} placeholder="e.g. I'm a content strategist helping creators monetise their audience without burnout. I write about systems, brand building, and the creator economy." className="w-full border border-[#e5ded4] rounded-xl px-3 py-2 text-sm outline-none focus:border-[#ff6b35] bg-white resize-none" />
+              <div className="relative">
+                <textarea value={brand} onChange={(e) => setBrand(e.target.value)} rows={3} placeholder="e.g. I'm a content strategist helping creators monetise their audience without burnout. I write about systems, brand building, and the creator economy." className="w-full border border-[#e5ded4] rounded-xl px-3 py-2 pr-9 text-sm outline-none focus:border-[#ff6b35] bg-white resize-none" />
+                <VoiceMicButton onResult={(t) => setBrand((p) => p ? `${p} ${t}` : t)} className="absolute right-2 top-2 w-6 h-6" size={13} />
+              </div>
               <button onClick={saveBrand} className="px-4 py-1.5 rounded-lg bg-[#ff6b35] text-white text-xs font-medium hover:bg-[#e55a25] transition-colors">
                 {brandSaved ? '✓ Saved' : 'Save context'}
               </button>
@@ -445,7 +449,10 @@ export default function EngageView() {
           <div className="space-y-5">
             <div className="bg-white border border-[#e5ded4] rounded-2xl p-5 space-y-4">
               <p className="text-sm font-semibold text-[#1a1a2e]">Paste a post</p>
-              <textarea value={postContent} onChange={(e) => setPostContent(e.target.value)} rows={5} placeholder="Paste the post text you want to comment on…" className="w-full border border-[#e5ded4] rounded-xl px-4 py-3 text-sm outline-none focus:border-[#ff6b35] resize-none text-[#1a1a2e]" />
+              <div className="relative">
+                <textarea value={postContent} onChange={(e) => setPostContent(e.target.value)} rows={5} placeholder="Paste the post text you want to comment on…" className="w-full border border-[#e5ded4] rounded-xl px-4 py-3 pr-10 text-sm outline-none focus:border-[#ff6b35] resize-none text-[#1a1a2e]" />
+                <VoiceMicButton onResult={(t) => setPostContent((p) => p ? `${p} ${t}` : t)} className="absolute right-2 top-2 w-7 h-7" size={14} />
+              </div>
               <input value={postUrl} onChange={(e) => setPostUrl(e.target.value)} placeholder="Post URL (optional — used for Copy & Open)" className="w-full border border-[#e5ded4] rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#ff6b35] text-[#1a1a2e]" />
               <button onClick={generateComments} disabled={!postContent.trim() || loadingComment} className="w-full py-2.5 rounded-xl bg-[#ff6b35] text-white text-sm font-medium disabled:opacity-40 hover:bg-[#e55a25] transition-colors flex items-center justify-center gap-2">
                 {loadingComment ? <><Loader2 size={14} className="animate-spin" /> Generating…</> : <><MessageSquarePlus size={14} /> Generate comment ideas</>}
