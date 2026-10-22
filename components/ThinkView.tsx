@@ -387,7 +387,7 @@ Respond ONLY with valid JSON — no markdown, no explanation, just the JSON obje
                         {source.status === 'ready' &&
                           `✓ Ready · ${source.transcript?.split(' ').length.toLocaleString() ?? 0} words`}
                         {source.status === 'error' && (
-                          <span className="text-amber-600">⚠ No captions — paste transcript below</span>
+                          <span className="text-amber-600">⚠ This channel disabled captions — paste transcript below</span>
                         )}
                       </p>
                     </div>
