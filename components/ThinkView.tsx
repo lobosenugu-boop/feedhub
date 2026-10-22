@@ -120,6 +120,7 @@ export default function ThinkView() {
                 channel: meta.author,
                 transcript: transcriptData.transcript || undefined,
                 status: transcriptData.transcript ? 'ready' : 'error',
+                showPaste: !transcriptData.transcript, // auto-open paste for no-caption videos
               }
             : s
         )
@@ -386,12 +387,7 @@ Respond ONLY with valid JSON — no markdown, no explanation, just the JSON obje
                         {source.status === 'ready' &&
                           `✓ Ready · ${source.transcript?.split(' ').length.toLocaleString() ?? 0} words`}
                         {source.status === 'error' && (
-                          <button
-                            onClick={() => setSources(prev => prev.map(s => s.videoId === source.videoId ? { ...s, showPaste: !s.showPaste } : s))}
-                            className="text-amber-600 hover:underline"
-                          >
-                            ⚠ No captions — paste transcript manually
-                          </button>
+                          <span className="text-amber-600">⚠ No captions — paste transcript below</span>
                         )}
                       </p>
                     </div>
@@ -405,12 +401,22 @@ Respond ONLY with valid JSON — no markdown, no explanation, just the JSON obje
                       <X size={14} />
                     </button>
                   </div>
-                    {/* Manual paste area for videos without captions */}
-                    {source.status === 'error' && source.showPaste && (
+                    {/* Manual paste area — auto-opens when no captions found */}
+                    {source.status === 'error' && (source.showPaste !== false) && (
                       <div className="border-t border-[#f0ebe3] p-3">
-                        <p className="text-xs text-[#8a8a9a] mb-2">
-                          On YouTube: open the video → <strong>⋮</strong> menu → <strong>Show transcript</strong> → copy all text, paste below.
-                        </p>
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-xs text-[#8a8a9a]">
+                            Open the video → <strong>⋮</strong> → <strong>Show transcript</strong> → copy all → paste below.
+                          </p>
+                          <a
+                            href={source.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-[#ff6b35] hover:underline shrink-0 ml-3 font-medium"
+                          >
+                            Open on YouTube ↗
+                          </a>
+                        </div>
                         <textarea
                           rows={5}
                           value={source.pasteValue || ''}
