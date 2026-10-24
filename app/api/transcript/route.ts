@@ -58,12 +58,31 @@ function parseXml(xml: string): string {
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const videoId = searchParams.get('videoId');
+  const debug = searchParams.get('debug') === '1';
   if (!videoId) return NextResponse.json({ error: 'Missing videoId' }, { status: 400 });
 
   try {
-    const tracks = await getCaptonTracks(videoId);
+    let innertubeStatus = 0;
+    const tracks = await (async () => {
+      const resp = await fetch(INNERTUBE_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': `com.google.android.youtube/${CLIENT_VERSION} (Linux; U; Android 14)`,
+        },
+        body: JSON.stringify({
+          context: { client: { clientName: 'ANDROID', clientVersion: CLIENT_VERSION } },
+          videoId,
+        }),
+      });
+      innertubeStatus = resp.status;
+      if (!resp.ok) return [];
+      const data = await resp.json();
+      return data?.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? [] as CaptionTrack[];
+    })();
+
     if (!tracks.length) {
-      return NextResponse.json({ transcript: null, error: 'disabled' });
+      return NextResponse.json({ transcript: null, error: 'disabled', _d: debug ? { innertubeStatus, tracksCount: 0 } : undefined });
     }
 
     const track = pickTrack(tracks);
@@ -74,17 +93,25 @@ export async function GET(req: NextRequest) {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       },
     });
-    if (!xmlResp.ok) return NextResponse.json({ transcript: null, error: 'disabled' });
+
+    if (!xmlResp.ok) {
+      return NextResponse.json({ transcript: null, error: 'disabled', _d: debug ? { innertubeStatus, xmlStatus: xmlResp.status } : undefined });
+    }
 
     const xml = await xmlResp.text();
     const transcript = parseXml(xml);
+
+    if (debug) {
+      return NextResponse.json({ transcript: transcript.slice(0, 200), xmlLength: xml.length, transcriptLength: transcript.length, tracksCount: tracks.length, innertubeStatus, xmlStatus: xmlResp.status, xmlContentType: xmlResp.headers.get('content-type') });
+    }
 
     if (transcript.length < 50) {
       return NextResponse.json({ transcript: null, error: 'disabled' });
     }
 
     return NextResponse.json({ transcript, source: 'captions' });
-  } catch {
-    return NextResponse.json({ transcript: null, error: 'disabled' });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return NextResponse.json({ transcript: null, error: 'disabled', _d: debug ? { caught: msg } : undefined });
   }
 }
