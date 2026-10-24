@@ -5,33 +5,57 @@ export const dynamic = 'force-dynamic';
 
 const INNERTUBE_URL = 'https://www.youtube.com/youtubei/v1/player?prettyPrint=false';
 const CLIENT_VERSION = '20.10.38';
+const UA = `com.google.android.youtube/${CLIENT_VERSION} (Linux; U; Android 14)`;
 
 interface CaptionTrack {
   baseUrl: string;
   languageCode: string;
   kind?: string;
-  name?: { simpleText?: string };
 }
 
-async function getCaptonTracks(videoId: string): Promise<CaptionTrack[]> {
+async function innertubePost(videoId: string, visitorData?: string) {
+  const context = {
+    client: {
+      clientName: 'ANDROID',
+      clientVersion: CLIENT_VERSION,
+      hl: 'en',
+      gl: 'US',
+      ...(visitorData ? { visitorData } : {}),
+    },
+  };
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'User-Agent': UA,
+  };
+  if (visitorData) headers['X-Goog-Visitor-Id'] = visitorData;
+
   const resp = await fetch(INNERTUBE_URL, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'User-Agent': `com.google.android.youtube/${CLIENT_VERSION} (Linux; U; Android 14)`,
-    },
-    body: JSON.stringify({
-      context: { client: { clientName: 'ANDROID', clientVersion: CLIENT_VERSION } },
-      videoId,
-    }),
+    headers,
+    body: JSON.stringify({ context, videoId }),
   });
-  if (!resp.ok) return [];
+  if (!resp.ok) return { tracks: [], visitorData: undefined };
   const data = await resp.json();
-  return data?.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? [];
+  return {
+    tracks: (data?.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? []) as CaptionTrack[],
+    visitorData: data?.responseContext?.visitorData as string | undefined,
+  };
+}
+
+async function getCaptionTracks(videoId: string): Promise<{ tracks: CaptionTrack[]; visitorData?: string }> {
+  // First call — gets visitorData even if tracks are empty (cloud IP restriction)
+  const first = await innertubePost(videoId);
+  if (first.tracks.length > 0) return first;
+
+  // Second call with visitorData — sometimes unlocks tracks on restricted IPs
+  if (first.visitorData) {
+    const second = await innertubePost(videoId, first.visitorData);
+    if (second.tracks.length > 0) return second;
+  }
+  return first;
 }
 
 function pickTrack(tracks: CaptionTrack[]): CaptionTrack | null {
-  // prefer auto-generated English, then manual English, then any English, then first
   const order = [
     (t: CaptionTrack) => t.languageCode === 'en' && t.kind === 'asr',
     (t: CaptionTrack) => t.languageCode === 'en',
@@ -45,11 +69,16 @@ function pickTrack(tracks: CaptionTrack[]): CaptionTrack | null {
 }
 
 function decodeHtml(s: string): string {
-  return s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/\n/g, ' ');
+  return s
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/\n/g, ' ');
 }
 
 function parseXml(xml: string): string {
-  // Strip all XML tags and decode HTML entities
   return decodeHtml(xml.replace(/<[^>]+>/g, ' '))
     .replace(/\s+/g, ' ')
     .trim();
@@ -59,30 +88,17 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const videoId = searchParams.get('videoId');
   const debug = searchParams.get('debug') === '1';
-  if (!videoId) return NextResponse.json({ v: 'edge-v2', error: 'Missing videoId' }, { status: 400 });
+  if (!videoId) return NextResponse.json({ v: 'edge-v3', error: 'Missing videoId' }, { status: 400 });
 
   try {
-    let innertubeStatus = 0;
-    const tracks = await (async () => {
-      const resp = await fetch(INNERTUBE_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': `com.google.android.youtube/${CLIENT_VERSION} (Linux; U; Android 14)`,
-        },
-        body: JSON.stringify({
-          context: { client: { clientName: 'ANDROID', clientVersion: CLIENT_VERSION } },
-          videoId,
-        }),
-      });
-      innertubeStatus = resp.status;
-      if (!resp.ok) return [];
-      const data = await resp.json();
-      return data?.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? [] as CaptionTrack[];
-    })();
+    const { tracks, visitorData } = await getCaptionTracks(videoId);
 
     if (!tracks.length) {
-      return NextResponse.json({ transcript: null, error: 'disabled', _d: debug ? { innertubeStatus, tracksCount: 0 } : undefined });
+      return NextResponse.json({
+        transcript: null,
+        error: 'disabled',
+        _d: debug ? { tracksCount: 0, hasVisitorData: !!visitorData } : undefined,
+      });
     }
 
     const track = pickTrack(tracks);
@@ -95,14 +111,26 @@ export async function GET(req: NextRequest) {
     });
 
     if (!xmlResp.ok) {
-      return NextResponse.json({ transcript: null, error: 'disabled', _d: debug ? { innertubeStatus, xmlStatus: xmlResp.status } : undefined });
+      return NextResponse.json({
+        transcript: null,
+        error: 'disabled',
+        _d: debug ? { tracksCount: tracks.length, xmlStatus: xmlResp.status } : undefined,
+      });
     }
 
     const xml = await xmlResp.text();
     const transcript = parseXml(xml);
 
     if (debug) {
-      return NextResponse.json({ transcript: transcript.slice(0, 200), xmlLength: xml.length, transcriptLength: transcript.length, tracksCount: tracks.length, innertubeStatus, xmlStatus: xmlResp.status, xmlContentType: xmlResp.headers.get('content-type') });
+      return NextResponse.json({
+        v: 'edge-v3',
+        transcript: transcript.slice(0, 200),
+        xmlLength: xml.length,
+        transcriptLength: transcript.length,
+        tracksCount: tracks.length,
+        xmlStatus: xmlResp.status,
+        hasVisitorData: !!visitorData,
+      });
     }
 
     if (transcript.length < 50) {
@@ -112,6 +140,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ transcript, source: 'captions' });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    return NextResponse.json({ transcript: null, error: 'disabled', _d: debug ? { caught: msg } : undefined });
+    return NextResponse.json({
+      transcript: null,
+      error: 'disabled',
+      _d: debug ? { caught: msg } : undefined,
+    });
   }
 }
