@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 30;
 
 const INNERTUBE_URL = 'https://www.youtube.com/youtubei/v1/player?prettyPrint=false';
 const CLIENT_VERSION = '20.10.38';
