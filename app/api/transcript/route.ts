@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const videoId = searchParams.get('videoId');
   const debug = searchParams.get('debug') === '1';
-  if (!videoId) return NextResponse.json({ error: 'Missing videoId' }, { status: 400 });
+  if (!videoId) return NextResponse.json({ v: 'edge-v2', error: 'Missing videoId' }, { status: 400 });
 
   try {
     let innertubeStatus = 0;
